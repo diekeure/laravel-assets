@@ -3,6 +3,7 @@
 namespace CatLab\Assets\Laravel;
 
 use Illuminate\Support\ServiceProvider;
+use League\Flysystem\Config;
 
 /**
  * Class AssetServiceProvider
@@ -25,14 +26,16 @@ class AssetServiceProvider extends ServiceProvider
     public function boot()
     {
         if (! $this->app->routesAreCached()) {
-            require __DIR__.'/routes.php';
+            if (\Config::get('assets.route')) {
+                require __DIR__ . '/routes.php';
+            }
         }
 
-        $namespace = 'assets';
-        $resourcePath = __DIR__.'/../resources/';
+        //$namespace = 'assets';
+        //$resourcePath = __DIR__.'/../resources/';
 
-        $this->loadViewsFrom($resourcePath . 'views', $namespace);
-        $this->loadTranslationsFrom($resourcePath . 'lang', $namespace);
+        //$this->loadViewsFrom($resourcePath . 'views', $namespace);
+        //$this->loadTranslationsFrom($resourcePath . 'lang', $namespace);
 
         /*
         $this->publishes([
@@ -41,7 +44,11 @@ class AssetServiceProvider extends ServiceProvider
         */
 
         $this->publishes([
-            __DIR__ . '/../database/migrations' => database_path('migrations')
+            __DIR__.'/../../config/assets.php' => config_path('assets.php'),
+        ], 'config');
+
+        $this->publishes([
+            __DIR__ . '/../../database/migrations' => database_path('migrations')
         ], 'migrations');
     }
 }
