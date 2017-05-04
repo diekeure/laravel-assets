@@ -1,0 +1,25 @@
+{
+  "name": "catlabinteractive/laravel-assets",
+  "description": "Handle asset upload",
+  "type": "library",
+  "require": {
+    "php": ">=7.0.0",
+    "catlabinteractive/base": "~1.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "*",
+    "laravel/framework": "5.4.*"
+  },
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Thijs Van der Schaeghe",
+      "email": "info@catlab.be"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "CatLab\\Assets\\":"src/"
+    }
+  }
+}
