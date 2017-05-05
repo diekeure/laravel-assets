@@ -2,7 +2,7 @@
 
 return [
 
-    'userClassName' => App\User::class,
+    'userClassName' => \App\Models\User::class,
 
     'route' => [
 
