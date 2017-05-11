@@ -28,6 +28,7 @@ class Asset extends Model
         'type',
         'size',
         'path',
+        'hash'
     ];
 
     /**
