@@ -35,6 +35,8 @@ class AssetUploader
      */
     public function getAssetFromFile(UploadedFile $file, User $user = null)
     {
+        $hash = md5_file($file->getPath());
+
         // Create record
         $asset = new Asset([
             'name' => $file->getClientOriginalName(),
@@ -42,6 +44,7 @@ class AssetUploader
             'type' => ($this->getAssetType($file)),
             'size' => $file->getSize(),
             'path' => $file->getPath(),
+            'hash' => $hash
         ]);
 
         if ($user) {
