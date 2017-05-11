@@ -29,13 +29,36 @@ class AssetUploader
     }
 
     /**
+     * Look for a duplicate of this file, if it exists.
+     * @param UploadedFile $file
+     * @return Asset|null
+     */
+    public function getDuplicate(UploadedFile $file)
+    {
+        $hash = $this->getHash($file);
+
+        // Look in database for duplicate
+        $assets = Asset::where('hash', '=', $hash)->get();
+
+        foreach ($assets as $asset) {
+            /** @var Asset $asset */
+            // Do a byte specific check, but it should be okay.
+            if ($asset->isFileEqual($file)) {
+                return $asset;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param UploadedFile $file
      * @param User|null $user
      * @return Asset
      */
     public function getAssetFromFile(UploadedFile $file, User $user = null)
     {
-        $hash = md5_file($file->getPath());
+        $hash = $this->getHash($file);
 
         // Create record
         $asset = new Asset([
@@ -73,6 +96,15 @@ class AssetUploader
         // Update meta data
         $asset->updateMetaData();
         $asset->save();
+    }
+
+    /**
+     * @param UploadedFile $file
+     * @return string
+     */
+    protected function getHash(UploadedFile $file)
+    {
+        return md5_file($file->getPath());
     }
 
     /**

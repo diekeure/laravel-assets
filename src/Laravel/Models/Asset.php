@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Image;
 use Storage;
 use Config;
+use Symfony\Component\HttpFoundation\File\File;
 
 /**
  * Class Asset
@@ -222,9 +223,9 @@ class Asset extends Model
     }
 
     /**
-     * Delete the asset.
-     *
-     * @param bool $deleteFileFromDisk When true, the associated file is also deleted from disk.
+     * Delete the asset
+     * @param bool $deleteFileFromDisk
+     * @return bool|null
      */
     public function delete($deleteFileFromDisk = true)
     {
@@ -255,5 +256,55 @@ class Asset extends Model
     {
         $disk = $this->getDisk();
         return $disk->delete($this->path);
+    }
+
+    /**
+     * Check if provided file matches the asset file
+     * @param File $file
+     * @return bool
+     */
+    public function isFileEqual(File $file)
+    {
+        $a = $file->getPathname();
+
+        $disk = $this->getDisk();
+        $bh = $disk->readStream($this->path);
+
+        // Check if filesize is different
+        if(filesize($a) !== $this->size) {
+            return false;
+        }
+
+        // Check if content is different
+        $ah = fopen($a, 'rb');
+
+        $result = true;
+        while(!feof($ah)) {
+            if(fread($ah, 8192) != fread($bh, 8192))
+            {
+                $result = false;
+                break;
+            }
+        }
+
+        fclose($ah);
+        fclose($bh);
+
+        return $result;
+    }
+
+    /**
+     * Return data that could be publicly exposed
+     * @return array
+     */
+    public function getMetaData()
+    {
+        return [
+            'type' => $this->type,
+            'mimetype' => $this->mimetype,
+            'size' => $this->size,
+            'width' => $this->width,
+            'height' => $this->height
+        ];
     }
 }
