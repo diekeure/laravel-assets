@@ -66,7 +66,7 @@ class AssetUploader
             'mimetype' => $this->getMimeType($file),
             'type' => ($this->getAssetType($file)),
             'size' => $file->getSize(),
-            'path' => $file->getPath(),
+            'path' => $file->getPathname(),
             'hash' => $hash
         ]);
 
@@ -104,7 +104,7 @@ class AssetUploader
      */
     protected function getHash(UploadedFile $file)
     {
-        return md5_file($file->getPath());
+        return md5_file($file->getPathname());
     }
 
     /**
