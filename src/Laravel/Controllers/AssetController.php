@@ -96,7 +96,7 @@ class AssetController
 
         return [
             'Expires' => $expireDate->format('r'),
-            'Last-Modified' => $asset->created_at->format('r'),
+            'Last-Modified' => $asset->created_at ? $asset->created_at->format('r') : null,
             'Cache-Control' => 'max-age=' . $this->dateIntervalToSeconds($expireInterval) . ', public'
         ];
     }
