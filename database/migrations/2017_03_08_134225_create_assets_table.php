@@ -22,6 +22,8 @@ class CreateAssetsTable extends Migration
             $table->string('type');
             $table->integer('size')->unsigned();
             $table->string('path');
+            $table->string('hash')->length(64);
+            $table->index('hash');
 
             $table->integer('width')->unsigned()->nullable();
             $table->integer('height')->unsigned()->nullable();
