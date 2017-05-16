@@ -80,7 +80,7 @@ class AssetController
      */
     protected function getImageResponse(Asset $asset)
     {
-        $response = \Illuminate\Http\Response::make(
+        $response = Response::make(
             $asset->getResizedImage(...$this->getImageSize($asset)),
             200,
             array_merge(
@@ -156,7 +156,7 @@ class AssetController
             $headers['Content-Range'] = "bytes {$start}-{$end}/{$size}";
 
             if (strpos($range, ',') !== false) {
-                return \Illuminate\Http\Response::make('Requested Range Not Satisfiable', 416, $headers);
+                return Response::make('Requested Range Not Satisfiable', 416, $headers);
             }
 
             if ($range == '-') {
@@ -170,7 +170,7 @@ class AssetController
             $c_end = ($c_end > $end) ? $end : $c_end;
 
             if ($c_start > $c_end || $c_start > $size - 1 || $c_end >= $size) {
-                return \Illuminate\Http\Response::make('Requested Range Not Satisfiable', 416, $headers);
+                return Response::make('Requested Range Not Satisfiable', 416, $headers);
             }
 
             $start = $c_start;
@@ -185,7 +185,7 @@ class AssetController
         $length = $end - $start + 1;
         $headers['Content-Length'] = $length;
 
-        return \Response::stream(
+        return Response::stream(
             function() use ($stream, $start, $end) {
                 $buffer = 102400;
 
