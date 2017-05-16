@@ -50,6 +50,7 @@ class AssetController
     }
 
     /**
+     * @param Asset $asset
      * @return array
      */
     protected function getImageSize(Asset $asset)
