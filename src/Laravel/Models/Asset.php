@@ -201,7 +201,7 @@ class Asset extends Model
             return $this->getData();
         }
 
-        return Image::cache(
+        return app('image')->cache(
             function($image) use ($width, $height) {
                 return $image
                     ->make($this->getOriginalImage())
