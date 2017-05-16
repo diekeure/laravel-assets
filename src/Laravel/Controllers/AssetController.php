@@ -41,7 +41,7 @@ class AssetController
      */
     protected function viewAsset(Asset $asset)
     {
-        if ($asset->isImage()) {
+        if ($asset->isImage() && !$asset->isSvg()) {
             return $this->getImageResponse($asset);
         }
 
