@@ -32,6 +32,15 @@ class AssetController
             abort(404, 'Asset ' . $assetId . ' not found.');
         }
 
+        return $this->viewAsset($asset);
+    }
+
+    /**
+     * @param Asset $asset
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    protected function viewAsset(Asset $asset)
+    {
         if ($asset->isImage()) {
             return $this->getImageResponse($asset);
         }
@@ -43,7 +52,7 @@ class AssetController
     /**
      * @return array
      */
-    protected function getImageSize()
+    protected function getImageSize(Asset $asset)
     {
         if (Request::input(self::QUERY_PARAM_SQUARE)) {
             return [
@@ -72,7 +81,7 @@ class AssetController
     protected function getImageResponse(Asset $asset)
     {
         $response = \Illuminate\Http\Response::make(
-            $asset->getResizedImage(...$this->getImageSize()),
+            $asset->getResizedImage(...$this->getImageSize($asset)),
             200,
             array_merge(
                 [
