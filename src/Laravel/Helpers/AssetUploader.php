@@ -91,7 +91,20 @@ class AssetUploader
 
         // Move to final destination
         try {
-            $asset->getDisk()->put($asset->path, $file);
+            // Calculate filesize
+            $filesize = filesize($file->getPathname());
+
+            // Open reader
+            $reader = fopen($file->getPathname(), 'r+');
+
+            $asset->getDisk()->put(
+                $asset->path,
+                $reader,
+                [
+                    'ContentLength' => $filesize
+                ]
+            );
+            fclose($reader);
 
             // Update meta data
             $asset->updateMetaData();
