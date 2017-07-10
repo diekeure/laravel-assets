@@ -45,7 +45,7 @@ class Asset extends Model
      */
     public function getDisk()
     {
-        return Storage::disk(Asset::STORAGE_DISK);
+        return Storage::disk(Config::get('assets.disk', self::STORAGE_DISK));
     }
 
     /**
