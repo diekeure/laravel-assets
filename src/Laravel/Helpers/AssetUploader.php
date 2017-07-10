@@ -91,10 +91,7 @@ class AssetUploader
 
         // Move to final destination
         try {
-
-            $reader = fopen($file->getPathname(), 'r');
-            $asset->getDisk()->put($asset->path, $reader);
-            fclose($reader);
+            $asset->getDisk()->put($asset->path, $file);
 
             // Update meta data
             $asset->updateMetaData();
