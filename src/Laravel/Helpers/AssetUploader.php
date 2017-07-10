@@ -80,6 +80,7 @@ class AssetUploader
     /**
      * @param UploadedFile $file
      * @param Asset $asset
+     * @throws \Exception
      */
     protected function storeAssetFile(UploadedFile $file, Asset $asset)
     {
@@ -89,13 +90,23 @@ class AssetUploader
         $asset->path = $this->getUploadFolder() . '/' . $this->getFilePath($asset, $file);
 
         // Move to final destination
-        $reader = fopen($file->getPathname(), 'r');
-        $asset->getDisk()->put($asset->path, $reader);
-        fclose($reader);
+        try {
 
-        // Update meta data
-        $asset->updateMetaData();
-        $asset->save();
+            $reader = fopen($file->getPathname(), 'r');
+            $asset->getDisk()->put($asset->path, $reader);
+            fclose($reader);
+
+            // Update meta data
+            $asset->updateMetaData();
+            $asset->save();
+
+        } catch (\Exception $e) {
+            // If that failed, delete the asset.
+            $asset->delete();
+
+            // ... but still throw the exception.
+            throw $e;
+        }
     }
 
     /**
