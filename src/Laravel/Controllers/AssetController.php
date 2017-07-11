@@ -16,7 +16,9 @@ use Response;
  */
 class AssetController
 {
+    const QUERY_PARAM_SHAPE = 'shape';
     const QUERY_PARAM_SQUARE = 'square';
+    const QUERY_PARAM_SIZE = 'size';
     const QUERY_PARAM_WIDTH = 'width';
     const QUERY_PARAM_HEIGHT = 'height';
 
@@ -55,6 +57,22 @@ class AssetController
      */
     protected function getImageSize(Asset $asset)
     {
+        if (Request::input(self::QUERY_PARAM_SHAPE)) {
+
+            $shape = Request::input(self::QUERY_PARAM_SHAPE);
+            switch ($shape) {
+                case self::QUERY_PARAM_SQUARE:
+
+                    if (Request::input(self::QUERY_PARAM_SIZE)) {
+                        return [
+                            Request::input(self::QUERY_PARAM_SIZE),
+                            Request::input(self::QUERY_PARAM_SIZE)
+                        ];
+                    }
+            }
+
+        }
+
         if (Request::input(self::QUERY_PARAM_SQUARE)) {
             return [
                 Request::input(self::QUERY_PARAM_SQUARE),
