@@ -142,6 +142,22 @@ class AssetController
         // Tell the browser that we accept ranges
         $headers['Accept-Ranges'] = '0-' . $size;
 
+        if (\Config::get('cors.allowedOrigins')) {
+            $headers['Access-Control-Allow-Origin'] = \Config::get('cors.allowedOrigins');
+        }
+
+        if (\Config::get('cors.allowedHeaders')) {
+            $headers['Access-Control-Request-Headers'] = \Config::get('cors.allowedHeaders');
+        }
+
+        if (\Config::get('cors.allowedMethods')) {
+            $headers['Access-Control-Request-Method'] = \Config::get('cors.allowedMethods');
+        }
+
+        if (\Config::get('cors.exposedHeaders')) {
+            $headers['Access-Control-Expose-Headers'] = \Config::get('cors.exposedHeaders');
+        }
+
         $start = 0;
         $end = $size - 1;
 
