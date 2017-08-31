@@ -196,7 +196,9 @@ class Asset extends Model
         }
 
         // Checksum = just the query string
-        $cacheKey = 'image:resize:' . $this->id . ':' . $width . ':' . $height;
+        $cachePrefix = config('assets.cachePrefix', 'image:');
+
+        $cacheKey = $cachePrefix . ':resize:' . $this->id . ':' . $width . ':' . $height;
         $cache = app('cache');
 
         $lifetime = config('assets.cacheLifetime');
