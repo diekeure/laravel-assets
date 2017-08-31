@@ -195,14 +195,10 @@ class Asset extends Model
             return $this->getData();
         }
 
-        // @todo this can be improved.
-        return app('image')->cache(
-            function($image) use ($width, $height) {
-                return $image
-                    ->make($this->getOriginalImage())
-                    ->fit($width, $height);
-            }, self::CACHE_LIFETIME
-        );
+        $image = Image::make($this->getOriginalImage());
+        $image = $image->fit($width, $height);
+
+        return $image->encode();
     }
 
     /**
