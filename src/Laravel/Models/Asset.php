@@ -183,9 +183,10 @@ class Asset extends Model
     /**
      * @param $width
      * @param $height
+     * @param bool $cache
      * @return string
      */
-    public function getResizedImage($width, $height)
+    public function getResizedImage($width, $height, $cache = true)
     {
         if (!$this->isImage()) {
             return $this->getData();
@@ -196,26 +197,31 @@ class Asset extends Model
         }
 
         // Checksum = just the query string
-        $cachePrefix = config('assets.cachePrefix', 'image:');
+        if ($cache) {
+            $cachePrefix = config('assets.cachePrefix', 'image:');
 
-        $cacheKey = $cachePrefix . ':resize:' . $this->id . ':' . $width . ':' . $height;
-        $cache = app('cache');
+            $cacheKey = $cachePrefix . ':resize:' . $this->id . ':' . $width . ':' . $height;
+            $cache = app('cache');
 
-        $lifetime = config('assets.cacheLifetime');
+            $lifetime = config('assets.cacheLifetime');
 
-        // check if we have a cached value
-        $result = $cache->get($cacheKey);
-        if ($result) {
-            return $result;
+            // check if we have a cached value
+            $result = $cache->get($cacheKey);
+            if ($result) {
+                return $result;
+            }
         }
 
         // Actual resize.
         $image = Image::make($this->getOriginalImage());
         $image = $image->fit($width, $height);
 
-        // Set to code.
         $encoded = $image->encode();
-        $cache->put($cacheKey, $encoded, $lifetime);
+
+        // Set to code.
+        if ($cache) {
+            $cache->put($cacheKey, $encoded, $lifetime);
+        }
 
         return $encoded;
     }

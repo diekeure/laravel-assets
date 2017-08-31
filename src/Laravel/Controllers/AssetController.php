@@ -99,8 +99,10 @@ class AssetController
      */
     protected function getImageResponse(Asset $asset)
     {
+        $targetSize = $this->getImageSize($asset);
+
         $response = Response::make(
-            $asset->getResizedImage(...$this->getImageSize($asset)),
+            $asset->getResizedImage($targetSize[0], $targetSize[1], true),
             200,
             array_merge(
                 [
