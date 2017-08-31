@@ -195,10 +195,27 @@ class Asset extends Model
             return $this->getData();
         }
 
+        // Checksum = just the query string
+        $cacheKey = 'image:resize:' . $width . ':' . $height;
+        $cache = app('cache');
+
+        $lifetime = config('assets.cacheLifetime');
+
+        // check if we have a cached value
+        $result = $cache->get($cacheKey);
+        if ($result) {
+            return $result;
+        }
+
+        // Actual resize.
         $image = Image::make($this->getOriginalImage());
         $image = $image->fit($width, $height);
 
-        return $image->encode();
+        // Set to code.
+        $encoded = $image->encode();
+        $cache->put($cacheKey, $encoded, $lifetime);
+
+        return $encoded;
     }
 
     /**
