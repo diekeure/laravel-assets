@@ -173,16 +173,10 @@ class Asset extends Model
 
     /**
      * Return the image path that will be used by Image Intervention
-     * @TODO FIX THIS
      * @return string
      */
     private function getOriginalImage()
     {
-        $tmpFile = tempnam(sys_get_temp_dir(), 'imgToResize');
-        file_put_contents($tmpFile, $this->getDisk()->get($this->path));
-
-        return $tmpFile;
-
         return $this->getDisk()->get($this->path);
     }
 
@@ -201,6 +195,7 @@ class Asset extends Model
             return $this->getData();
         }
 
+        // @todo this can be improved.
         return app('image')->cache(
             function($image) use ($width, $height) {
                 return $image
