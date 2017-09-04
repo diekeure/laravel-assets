@@ -2,6 +2,7 @@
 
 namespace CatLab\Assets\Laravel\Models;
 
+use CatLab\Assets\Laravel\Helpers\Cache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -196,19 +197,17 @@ class Asset extends Model
             return $this->getData();
         }
 
+        $cacheIn = Cache::instance();
+
         // Checksum = just the query string
         if ($cache) {
             $cachePrefix = config('assets.cachePrefix', 'image:');
-
             $cacheKey = $cachePrefix . ':resize:' . $this->id . ':' . $width . ':' . $height;
-            $cache = app('cache');
 
-            $lifetime = config('assets.cacheLifetime');
 
             // check if we have a cached value
-            $result = $cache->get($cacheKey);
-            if ($result) {
-                return $result;
+            if ($cacheIn->has($cacheKey)) {
+                return $cacheIn->get($cacheKey);
             }
         }
 
@@ -220,7 +219,8 @@ class Asset extends Model
 
         // Set to code.
         if ($cache) {
-            $cache->put($cacheKey, $encoded, $lifetime);
+            $lifetime = config('assets.cacheLifetime');
+            $cacheIn->put($cacheKey, $encoded, $lifetime);
         }
 
         return $encoded;
