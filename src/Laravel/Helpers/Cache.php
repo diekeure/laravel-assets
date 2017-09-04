@@ -41,6 +41,6 @@ class Cache
      */
     protected function getPath($key)
     {
-        return storage_path('image_cache/' . $key);
+        return storage_path('image_cache/' . str_replace('/', '_', $key));
     }
 }
