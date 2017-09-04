@@ -28,7 +28,10 @@ class ResponseCache
      */
     public function outputIfExists()
     {
-        if (isset($_GET['nocache'])) {
+        if (
+            (isset($_GET['nocache']) && $_GET['nocache']) ||
+            (isset($_GET['noresponsecache']) && $_GET['noresponsecache'])
+        ) {
             return;
         }
 
