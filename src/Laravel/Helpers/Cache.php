@@ -30,7 +30,7 @@ class Cache
         return file_get_contents($this->getPath($key));
     }
 
-    public function put($key, $content)
+    public function put($key, $content, $lifetime = null)
     {
         file_put_contents($this->getPath($key), $content);
     }
