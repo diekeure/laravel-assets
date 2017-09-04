@@ -24,6 +24,11 @@ class Asset extends Model
 
     const CACHE_LIFETIME = 60*60*24*365;
 
+    /**
+     * @var bool
+     */
+    private $wasCached = null;
+
     protected $fillable = [
         'name',
         'mimetype',
@@ -207,9 +212,12 @@ class Asset extends Model
 
             // check if we have a cached value
             if ($cacheIn->has($cacheKey)) {
+                $this->wasCached = true;
                 return $cacheIn->get($cacheKey);
             }
         }
+
+        $this->wasCached = false;
 
         // Actual resize.
         $image = Image::make($this->getOriginalImage());
@@ -322,5 +330,13 @@ class Asset extends Model
             'width' => $this->width,
             'height' => $this->height
         ];
+    }
+
+    /**
+     * @return bool
+     */
+    public function wasCached()
+    {
+        return $this->wasCached;
     }
 }

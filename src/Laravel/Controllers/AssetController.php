@@ -106,7 +106,8 @@ class AssetController
             200,
             array_merge(
                 [
-                    'Content-type' => $asset->mimetype
+                    'Content-type' => $asset->mimetype,
+                    'X-Image-From-Cache' => $asset->wasCached() ? 'true' : 'false'
                 ],
                 $this->getCacheHeaders($asset)
             )
