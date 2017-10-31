@@ -3,9 +3,8 @@
 namespace CatLab\Assets\Laravel\Helpers;
 
 use CatLab\Assets\Laravel\Models\Asset;
-use CatLab\Assets\Laravel\PathGenerator;
+use CatLab\Assets\Laravel\PathGenerators\PathGenerator;
 use Illuminate\Foundation\Auth\User;
-use CatLab\Base\Helpers\StringHelper;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
@@ -14,8 +13,6 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  */
 class AssetUploader
 {
-    const UPLOAD_FOLDER = 'uploads';
-
     /**
      * @param UploadedFile $file
      * @param User $user

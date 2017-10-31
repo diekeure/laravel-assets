@@ -1,9 +1,9 @@
 <?php
 
-namespace CatLab\Assets\Laravel;
+namespace CatLab\Assets\Laravel\PathGenerators;
 
-use CatLab\Assets\Laravel\Models\Asset;
 use Config;
+use CatLab\Assets\Laravel\Models\Asset;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
@@ -12,6 +12,8 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  */
 abstract class PathGenerator
 {
+    const UPLOAD_FOLDER = 'uploads';
+
     /**
      * @return PathGenerator
      */
@@ -32,7 +34,16 @@ abstract class PathGenerator
     }
 
     /**
+     * @return string
+     */
+    public function getUploadFolder()
+    {
+        return self::UPLOAD_FOLDER;
+    }
+
+    /**
      * @param Asset $asset
+     * @param UploadedFile $file
      * @return string
      */
     abstract function generatePath(Asset $asset, UploadedFile $file);

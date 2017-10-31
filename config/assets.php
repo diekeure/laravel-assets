@@ -3,7 +3,7 @@
 return [
 
     'userClassName' => \App\Models\User::class,
-    'pathGenerator' => \CatLab\Assets\Laravel\PathGenerator::class,
+    'pathGenerator' => \CatLab\Assets\Laravel\PathGenerators\PathGenerator::class,
 
     'cacheLifetime' => 60*60*24*365,
     'cachePrefix' => 'image:',

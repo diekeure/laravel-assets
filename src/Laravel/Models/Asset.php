@@ -4,13 +4,15 @@ namespace CatLab\Assets\Laravel\Models;
 
 use CatLab\Assets\Laravel\Controllers\AssetController;
 use CatLab\Assets\Laravel\Helpers\Cache;
+use CatLab\Assets\Laravel\PathGenerators\PathGenerator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Http\UploadedFile;
+use Symfony\Component\HttpFoundation\File\File;
 
 use Image;
 use Storage;
 use Config;
-use Symfony\Component\HttpFoundation\File\File;
 
 /**
  * Class Asset
@@ -355,5 +357,53 @@ class Asset extends Model
     public function wasCached()
     {
         return $this->wasCached;
+    }
+
+    /**
+     * Move file from one disk to another.
+     * @param string $disk
+     */
+    public function moveToDisk($disk)
+    {
+        $currentDisk = $this->getDisk();
+        $targetDisk = Storage::disk($disk);
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'asset');
+        $handle = fopen($tmpFile, "w");
+
+        $bh = $currentDisk->readStream($this->path);
+        while(!feof($bh)) {
+            fwrite($handle, fread($bh, 8192));
+        }
+        fclose($handle);
+
+        $file = new UploadedFile($tmpFile, $this->name);
+
+        // Move the file to the new location
+        $this->disk = $disk;
+        $this->path = PathGenerator::getPathGenerator()->generatePath($this, $file);
+
+        // Move to final destination
+
+        // Calculate filesize
+        $filesize = filesize($tmpFile);
+
+        // Open reader
+        $reader = fopen($tmpFile, 'r+');
+
+        $targetDisk->put(
+            $this->path,
+            $reader,
+            [
+                'ContentLength' => $filesize
+            ]
+        );
+        fclose($reader);
+
+        // Save new drive and path.
+        $this->save();
+
+        // Remove temporary file
+        unlink($tmpFile);
     }
 }

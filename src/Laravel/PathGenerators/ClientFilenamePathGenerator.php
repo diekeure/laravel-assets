@@ -1,6 +1,6 @@
 <?php
 
-namespace CatLab\Assets\Laravel;
+namespace CatLab\Assets\Laravel\PathGenerators;
 
 use CatLab\Assets\Laravel\Models\Asset;
 use CatLab\Base\Helpers\StringHelper;
@@ -25,16 +25,8 @@ class ClientFilenamePathGenerator extends PathGenerator
         $extension = $file->getClientOriginalExtension();
         $filename = StringHelper::substr($file->getClientOriginalName(), 0, -(1 + StringHelper::length($extension)));
 
-        return $id
+        return $this->getUploadFolder() . '/' . $id
             . '-' . StringHelper::escapeFileName($filename)
             . '.' . $extension;
-    }
-
-    /**
-     * @return string
-     */
-    private function getUploadFolder()
-    {
-        return self::UPLOAD_FOLDER;
     }
 }
