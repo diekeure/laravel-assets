@@ -2,6 +2,7 @@
 
 namespace CatLab\Assets\Laravel\Models;
 
+use CatLab\Assets\Laravel\Controllers\AssetController;
 use CatLab\Assets\Laravel\Helpers\Cache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,8 +36,18 @@ class Asset extends Model
         'type',
         'size',
         'path',
-        'hash'
+        'hash',
+        'disk'
     ];
+
+    /**
+     * Get the default disk that will be used for storing the asset.
+     * @return string
+     */
+    public static function getDefaultDisk()
+    {
+        return Config::get('assets.disk', self::STORAGE_DISK);
+    }
 
     /**
      * @return BelongsTo
@@ -51,7 +62,13 @@ class Asset extends Model
      */
     public function getDisk()
     {
-        return Storage::disk(Config::get('assets.disk', self::STORAGE_DISK));
+        if (!empty($this->disk)) {
+            $disk = $this->disk;
+        } else {
+            $disk = self::getDefaultDisk();
+        }
+
+        return Storage::disk($disk);
     }
 
     /**
@@ -165,7 +182,7 @@ class Asset extends Model
     public function getUrl($parameters = []) : string
     {
         $parameters['id'] = $this;
-        return action('\Epyc\Assets\Controllers\AssetController@view', $parameters);
+        return action(AssetController::class . '@view', $parameters);
     }
 
     /**

@@ -3,8 +3,9 @@
 namespace CatLab\Assets\Laravel\Helpers;
 
 use CatLab\Assets\Laravel\Models\Asset;
-use CatLab\Base\Helpers\StringHelper;
+use CatLab\Assets\Laravel\PathGenerator;
 use Illuminate\Foundation\Auth\User;
+use CatLab\Base\Helpers\StringHelper;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
@@ -67,7 +68,8 @@ class AssetUploader
             'type' => ($this->getAssetType($file)),
             'size' => $file->getSize(),
             'path' => $file->getPathname(),
-            'hash' => $hash
+            'hash' => $hash,
+            'disk' => Asset::getDefaultDisk()
         ]);
 
         if ($user) {
@@ -87,7 +89,7 @@ class AssetUploader
         $asset->save();
 
         // Move the file to the proper location
-        $asset->path = $this->getUploadFolder() . '/' . $this->getFilePath($asset, $file);
+        $asset->path = PathGenerator::getPathGenerator()->generatePath($asset, $file);
 
         // Move to final destination
         try {
@@ -127,32 +129,6 @@ class AssetUploader
     {
         return md5_file($file->getPathname());
     }
-
-    /**
-     * @return string
-     */
-    private function getUploadFolder()
-    {
-        return self::UPLOAD_FOLDER;
-    }
-
-    /**
-     * @param Asset $asset
-     * @param UploadedFile $file
-     * @return string
-     */
-    private function getFilePath(Asset $asset, UploadedFile $file)
-    {
-        $id = str_pad($asset->id, 6, '0', STR_PAD_LEFT);
-
-        $extension = $file->getClientOriginalExtension();
-        $filename = StringHelper::substr($file->getClientOriginalName(), 0, -(1 + StringHelper::length($extension)));
-
-        return $id
-            . '-' . StringHelper::escapeFileName($filename)
-            . '.' . $extension;
-    }
-
 
     /**
      * @param UploadedFile $file
