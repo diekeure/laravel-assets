@@ -482,4 +482,13 @@ class Asset extends Model
 
         return $variation;
     }
+
+    /**
+     * Guess the extension of the file.
+     * @return mixed
+     */
+    public function getExtension()
+    {
+        return pathinfo($this->name, PATHINFO_EXTENSION);
+    }
 }
