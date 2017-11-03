@@ -28,6 +28,7 @@ class GroupedIdPathGeneratorTest extends TestCase
         $this->assertEquals('999100/100/100', $generator->getFolderFromId(999100100100));
         $this->assertEquals('1000100/100/100', $generator->getFolderFromId(1000100100100));
         $this->assertEquals('19000100/100/100', $generator->getFolderFromId(19000100100100));
+        $this->assertEquals('000/010/883', $generator->getFolderFromId(10883));
     }
 
 }

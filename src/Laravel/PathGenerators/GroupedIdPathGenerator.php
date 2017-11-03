@@ -24,10 +24,15 @@ class GroupedIdPathGenerator extends PathGenerator
      */
     public function generatePath(Asset $asset, UploadedFile $file)
     {
-        $assetPath = $this->getFolderFromId($asset->id);
-
+        $assetPath = $this->getFolderFromId($asset->getRootAsset()->id);
         $extension = $file->getClientOriginalExtension();
-        $filename = str_random(8);
+
+        if ($asset->id === $asset->getRootAsset()->id) {
+            $filename = str_random(8);
+        } else {
+            $filename = 'v' . $asset->variations->count() . '-' . str_random(8);
+        }
+
 
         return $this->getUploadFolder() . '/' . $assetPath
             . '/' . $filename

@@ -48,7 +48,7 @@ class AssetController
         }
 
         // Do some magic here.
-        return $this->getStreamResponse($asset, []);
+        return $this->getAssetResponse($asset, []);
     }
 
     /**
@@ -100,20 +100,9 @@ class AssetController
     protected function getImageResponse(Asset $asset)
     {
         $targetSize = $this->getImageSize($asset);
+        $variation = $asset->getResizedImage($targetSize[0], $targetSize[1]);
 
-        $response = Response::make(
-            $asset->getResizedImage($targetSize[0], $targetSize[1], true),
-            200,
-            array_merge(
-                [
-                    'Content-type' => $asset->mimetype,
-                    'X-Image-From-Cache' => $asset->wasCached() ? 'true' : 'false'
-                ],
-                $this->getCacheHeaders($asset)
-            )
-        );
-
-        return $response;
+        return $this->getAssetResponse($variation);
     }
 
     /**
@@ -149,7 +138,7 @@ class AssetController
      * @param string[] $forceHeaders
      * @return \Symfony\Component\HttpFoundation\StreamedResponse
      */
-    protected function getStreamResponse(Asset $asset, $forceHeaders = [])
+    protected function getAssetResponse(Asset $asset, $forceHeaders = [])
     {
         $headers = array_merge([
             'Content-type' => $asset->mimetype

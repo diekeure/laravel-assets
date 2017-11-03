@@ -3,6 +3,7 @@
 namespace CatLab\Assets\Laravel\Models;
 
 use CatLab\Assets\Laravel\Controllers\AssetController;
+use CatLab\Assets\Laravel\Helpers\AssetUploader;
 use CatLab\Assets\Laravel\Helpers\Cache;
 use CatLab\Assets\Laravel\PathGenerators\PathGenerator;
 use Illuminate\Database\Eloquent\Model;
@@ -206,34 +207,38 @@ class Asset extends Model
     }
 
     /**
+     * Get a resized variation of this image.
      * @param $width
      * @param $height
-     * @param bool $cache
-     * @return string
+     * @return Asset
      */
-    public function getResizedImage($width, $height, $cache = true)
+    public function getResizedImage($width, $height)
     {
         if (!$this->isImage()) {
-            return $this->getData();
+            return $this;
         }
 
         if (!$width || !$height) {
-            return $this->getData();
+            return $this;
         }
 
-        $cacheIn = Cache::instance();
+        $width = (int) $width;
+        $height = (int) $height;
 
-        // Checksum = just the query string
-        if ($cache) {
-            $cachePrefix = config('assets.cachePrefix', 'image:');
-            $cacheKey = $cachePrefix . ':resize:' . $this->id . ':' . $width . ':' . $height;
+        // Check for variations of this image with the desired dimensions.
 
+        /** @var Asset $variation */
+        $variation = $this
+            ->variations()
+            ->where('width', '=', $width)
+            ->where('height', '=', $height)
+            ->where('type', '=', $this->type)
+            ->first()
+        ;
 
-            // check if we have a cached value
-            if ($cacheIn->has($cacheKey)) {
-                $this->wasCached = true;
-                return $cacheIn->get($cacheKey);
-            }
+        if ($variation !== null) {
+            $this->wasCached = true;
+            return $variation;
         }
 
         $this->wasCached = false;
@@ -242,15 +247,20 @@ class Asset extends Model
         $image = Image::make($this->getOriginalImage());
         $image = $image->fit($width, $height);
 
+
         $encoded = $image->encode();
 
-        // Set to code.
-        if ($cache) {
-            $lifetime = config('assets.cacheLifetime');
-            $cacheIn->put($cacheKey, $encoded, $lifetime);
-        }
+        // put in temporary file and upload as new asset.
+        $tmpFile = tempnam(sys_get_temp_dir(), 'asset');
+        file_put_contents($tmpFile, $encoded);
 
-        return $encoded;
+        // Move the file to the new location
+        $variation = $this->createVariation($tmpFile);
+
+        // Remove temporary file
+        unlink($tmpFile);
+
+        return $variation;
     }
 
     /**
@@ -405,5 +415,71 @@ class Asset extends Model
 
         // Remove temporary file
         unlink($tmpFile);
+    }
+
+    /**
+     * Get the "root variation" of this asset.
+     * (A root asset has no root_asset_id, while all variations of the asset will have a root_asset_id set.)
+     * A variation is, for example, a resized version of the original asset.
+     * Note that variations of variations will still use the root asset.
+     */
+    public function getRootAsset()
+    {
+        if ($this->rootAsset === null) {
+            return $this;
+        } else {
+            return $this->rootAsset;
+        }
+    }
+
+    /**
+     * @deprecated Don't use! Use getRootAsset to make sure you always get a result.
+     * @return BelongsTo
+     */
+    public function rootAsset()
+    {
+        return $this->belongsTo(Asset::class, 'root_asset_id');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function variations()
+    {
+        $rootAsset = $this->getRootAsset();
+        return $rootAsset
+            ->getRootAsset()
+            ->hasMany(Asset::class, 'root_asset_id', 'id')
+            ->with('rootAsset')
+        ;
+    }
+
+    /**
+     * Create and upload a variation.
+     * @param $tmpFile
+     * @return Asset
+     */
+    public function createVariation($tmpFile)
+    {
+        $file = new UploadedFile($tmpFile, $this->name);
+        $uploader = new AssetUploader();
+
+        // Create record
+        $variation = $uploader->getAssetFromFile($file);
+
+        // Associate the root asset
+        $variation->rootAsset()->associate($this->getRootAsset()->id);
+
+        if ($this->user) {
+            $variation->user()->associate($this->user);
+        }
+
+        // Save.
+        $variation->save();
+
+        // Upload.
+        $uploader->storeAssetFile($file, $variation);
+
+        return $variation;
     }
 }

@@ -81,7 +81,7 @@ class AssetUploader
      * @param Asset $asset
      * @throws \Exception
      */
-    protected function storeAssetFile(UploadedFile $file, Asset $asset)
+    public function storeAssetFile(UploadedFile $file, Asset $asset)
     {
         $asset->save();
 
