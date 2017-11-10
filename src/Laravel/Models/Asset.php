@@ -227,18 +227,12 @@ class Asset extends Model
 
         // Check for variations of this image with the desired dimensions.
 
-        /** @var Asset $variation */
-        $variation = $this
-            ->variations()
-            ->where('width', '=', $width)
-            ->where('height', '=', $height)
-            ->where('type', '=', $this->type)
-            ->first()
-        ;
+        $variationName = 'resized:' . $width . ':' . $height;
+        $variation = $this->getVariation($variationName);
 
         if ($variation !== null) {
             $this->wasCached = true;
-            return $variation;
+            return $variation->variation;
         }
 
         $this->wasCached = false;
@@ -247,7 +241,6 @@ class Asset extends Model
         $image = Image::make($this->getOriginalImage());
         $image = $image->fit($width, $height);
 
-
         $encoded = $image->encode();
 
         // put in temporary file and upload as new asset.
@@ -255,12 +248,24 @@ class Asset extends Model
         file_put_contents($tmpFile, $encoded);
 
         // Move the file to the new location
-        $variation = $this->createVariation($tmpFile);
+        $variation = $this->createVariation($variationName, $tmpFile);
 
         // Remove temporary file
         unlink($tmpFile);
 
-        return $variation;
+        return $variation->variation;
+    }
+
+    /**
+     * @param $name
+     * @return Variation|null
+     */
+    public function getVariation($name)
+    {
+        return $this
+            ->variations
+            ->where('variation_name', '=', $name)
+            ->first();
     }
 
     /**
@@ -446,39 +451,45 @@ class Asset extends Model
      */
     public function variations()
     {
-        $rootAsset = $this->getRootAsset();
-        return $rootAsset
-            ->getRootAsset()
-            ->hasMany(Asset::class, 'root_asset_id', 'id')
-            ->with('rootAsset')
+        return $this->getRootAsset()
+            ->hasMany(Variation::class, 'original_asset_id', 'id')
+            ->with('variation')
         ;
     }
 
     /**
      * Create and upload a variation.
+     * @param $variationName
      * @param $tmpFile
-     * @return Asset
+     * @return Variation
      */
-    public function createVariation($tmpFile)
+    public function createVariation($variationName, $tmpFile)
     {
         $file = new UploadedFile($tmpFile, $this->name);
         $uploader = new AssetUploader();
 
         // Create record
-        $variation = $uploader->getAssetFromFile($file);
-
-        // Associate the root asset
-        $variation->rootAsset()->associate($this->getRootAsset()->id);
-
+        $variationAsset = $uploader->getAssetFromFile($file);
         if ($this->user) {
-            $variation->user()->associate($this->user);
+            $variationAsset->user()->associate($this->user);
         }
 
-        // Save.
-        $variation->save();
+        // Also keep the root asset link.
+        $variationAsset->rootAsset()->associate($this);
 
-        // Upload.
-        $uploader->storeAssetFile($file, $variation);
+        // Save.
+        $variationAsset->save();
+        $uploader->storeAssetFile($file, $variationAsset);
+
+        // create the variation
+        $variation = new Variation([
+            'variation_name' => $variationName
+        ]);
+
+        $variation->original()->associate($this);
+        $variation->variation()->associate($variationAsset);
+
+        $variation->save();
 
         return $variation;
     }
