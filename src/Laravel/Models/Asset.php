@@ -429,35 +429,11 @@ class Asset extends Model
     }
 
     /**
-     * Get the "root variation" of this asset.
-     * (A root asset has no root_asset_id, while all variations of the asset will have a root_asset_id set.)
-     * A variation is, for example, a resized version of the original asset.
-     * Note that variations of variations will still use the root asset.
-     */
-    public function getRootAsset()
-    {
-        if ($this->rootAsset === null) {
-            return $this;
-        } else {
-            return $this->rootAsset;
-        }
-    }
-
-    /**
-     * @deprecated Don't use! Use getRootAsset to make sure you always get a result.
-     * @return BelongsTo
-     */
-    public function rootAsset()
-    {
-        return $this->belongsTo(AssetFactory::getAssetClassName(), 'root_asset_id');
-    }
-
-    /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function variations()
     {
-        return $this->getRootAsset()
+        return $this
             ->hasMany(Variation::class, 'original_asset_id', 'id')
             ->with('asset')
         ;
@@ -481,9 +457,6 @@ class Asset extends Model
             if ($this->user) {
                 $variationAsset->user()->associate($this->user);
             }
-
-            // Also keep the root asset link.
-            $variationAsset->rootAsset()->associate($this);
 
             // Save.
             $variationAsset->save();
