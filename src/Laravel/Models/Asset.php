@@ -475,17 +475,21 @@ class Asset extends Model
         $uploader = new AssetUploader();
 
         // Create record
-        $variationAsset = $uploader->getAssetFromFile($file);
-        if ($this->user) {
-            $variationAsset->user()->associate($this->user);
+        $variationAsset = $uploader->getDuplicate($file);
+        if (!$variationAsset) {
+            $variationAsset = $uploader->getAssetFromFile($file);
+            if ($this->user) {
+                $variationAsset->user()->associate($this->user);
+            }
+
+            // Also keep the root asset link.
+            $variationAsset->rootAsset()->associate($this);
+
+            // Save.
+            $variationAsset->save();
+
+            $uploader->storeAssetFile($file, $variationAsset);
         }
-
-        // Also keep the root asset link.
-        $variationAsset->rootAsset()->associate($this);
-
-        // Save.
-        $variationAsset->save();
-        $uploader->storeAssetFile($file, $variationAsset);
 
         // create the variation
         $variation = $this->createVariationModel([
