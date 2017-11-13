@@ -2,6 +2,7 @@
 
 namespace CatLab\Assets\Laravel\Traits;
 
+use CatLab\Assets\Laravel\Helpers\AssetFactory;
 use CatLab\Assets\Laravel\Models\Asset;
 
 /**
@@ -16,9 +17,13 @@ trait HasAsset
      */
     public function asset()
     {
-        return $this->belongsTo(Asset::class);
+        return $this->belongsTo(AssetFactory::getAssetClassName());
     }
 
+    /**
+     * @param string $linkTextField
+     * @return string
+     */
     public function getLink($linkTextField = 'label')
     {
         return $this->asset->getUrl();

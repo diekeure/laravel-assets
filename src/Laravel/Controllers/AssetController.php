@@ -2,6 +2,7 @@
 
 namespace CatLab\Assets\Laravel\Controllers;
 
+use CatLab\Assets\Laravel\Helpers\AssetFactory;
 use CatLab\Assets\Laravel\Models\Asset;
 
 use DateInterval;
@@ -29,7 +30,7 @@ class AssetController
     public function view($assetId)
     {
         /** @var Asset $asset */
-        $asset = Asset::find($assetId);
+        $asset = AssetFactory::find($assetId);
         if (!$asset) {
             abort(404, 'Asset ' . $assetId . ' not found.');
         }

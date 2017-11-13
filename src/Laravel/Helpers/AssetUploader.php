@@ -36,7 +36,7 @@ class AssetUploader
         $hash = $this->getHash($file);
 
         // Look in database for duplicate
-        $assets = Asset::where('hash', '=', $hash)->get();
+        $assets = AssetFactory::query()->where('hash', '=', $hash)->get();
 
         foreach ($assets as $asset) {
             /** @var Asset $asset */
@@ -59,14 +59,14 @@ class AssetUploader
         $hash = $this->getHash($file);
 
         // Create record
-        $asset = new Asset([
+        $asset = AssetFactory::getNewInstance([
             'name' => $file->getClientOriginalName(),
             'mimetype' => $this->getMimeType($file),
             'type' => ($this->getAssetType($file)),
             'size' => $file->getSize(),
             'path' => $file->getPathname(),
             'hash' => $hash,
-            'disk' => Asset::getDefaultDisk()
+            'disk' => AssetFactory::getDefaultDisk()
         ]);
 
         if ($user) {

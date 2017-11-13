@@ -2,6 +2,7 @@
 
 namespace CatLab\Assets\Laravel\Models;
 
+use CatLab\Assets\Laravel\Helpers\AssetFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -19,7 +20,7 @@ class Variation extends Model
      */
     public function original()
     {
-        return $this->belongsTo(Asset::class, 'original_asset_id');
+        return $this->belongsTo(AssetFactory::getAssetClassName(), 'original_asset_id');
     }
 
     /**
@@ -27,6 +28,6 @@ class Variation extends Model
      */
     public function asset()
     {
-        return $this->belongsTo(Asset::class, 'variation_asset_id');
+        return $this->belongsTo(AssetFactory::getAssetClassName(), 'variation_asset_id');
     }
 }

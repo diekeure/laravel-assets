@@ -3,6 +3,7 @@
 namespace CatLab\Assets\Laravel\Models;
 
 use CatLab\Assets\Laravel\Controllers\AssetController;
+use CatLab\Assets\Laravel\Helpers\AssetFactory;
 use CatLab\Assets\Laravel\Helpers\AssetUploader;
 use CatLab\Assets\Laravel\Helpers\Cache;
 use CatLab\Assets\Laravel\PathGenerators\PathGenerator;
@@ -42,6 +43,11 @@ class Asset extends Model
         'hash',
         'disk'
     ];
+
+    /**
+     * @var string
+     */
+    protected $table = 'assets';
 
     /**
      * Get the default disk that will be used for storing the asset.
@@ -232,7 +238,7 @@ class Asset extends Model
 
         if ($variation !== null) {
             $this->wasCached = true;
-            return $variation->variation;
+            return $variation->asset;
         }
 
         $this->wasCached = false;
@@ -253,7 +259,7 @@ class Asset extends Model
         // Remove temporary file
         unlink($tmpFile);
 
-        return $variation->variation;
+        return $variation->asset;
     }
 
     /**
@@ -262,8 +268,8 @@ class Asset extends Model
      */
     public function getVariation($name)
     {
-        return $this
-            ->variations
+        $variation = $this->variations;
+        return $variation
             ->where('variation_name', '=', $name)
             ->first();
     }
@@ -443,7 +449,7 @@ class Asset extends Model
      */
     public function rootAsset()
     {
-        return $this->belongsTo(Asset::class, 'root_asset_id');
+        return $this->belongsTo(AssetFactory::getAssetClassName(), 'root_asset_id');
     }
 
     /**
@@ -453,7 +459,7 @@ class Asset extends Model
     {
         return $this->getRootAsset()
             ->hasMany(Variation::class, 'original_asset_id', 'id')
-            ->with('variation')
+            ->with('asset')
         ;
     }
 
@@ -482,13 +488,11 @@ class Asset extends Model
         $uploader->storeAssetFile($file, $variationAsset);
 
         // create the variation
-        $variation = new Variation([
+        $variation = $this->createVariationModel([
             'variation_name' => $variationName
         ]);
 
-        $variation->original()->associate($this);
         $variation->asset()->associate($variationAsset);
-
         $variation->save();
 
         return $variation;
@@ -501,5 +505,17 @@ class Asset extends Model
     public function getExtension()
     {
         return pathinfo($this->name, PATHINFO_EXTENSION);
+    }
+
+    /**
+     * @param array $attributes
+     * @return Variation
+     */
+    protected function createVariationModel(array $attributes)
+    {
+        $variation = new Variation($attributes);
+        $variation->original()->associate($this);
+
+        return $variation;
     }
 }
