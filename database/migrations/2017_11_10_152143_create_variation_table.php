@@ -42,7 +42,7 @@ class CreateVariationTable extends Migration
                     'variation_name' => $variationName
                 ]);
                 $variation->original()->associate(Asset::find($asset->root_asset_id));
-                $variation->variation()->associate($asset);
+                $variation->asset()->associate($asset);
                 $variation->save();
 
             }

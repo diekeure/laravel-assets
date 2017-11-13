@@ -25,7 +25,7 @@ class Variation extends Model
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function variation()
+    public function asset()
     {
         return $this->belongsTo(Asset::class, 'variation_asset_id');
     }

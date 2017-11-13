@@ -487,7 +487,7 @@ class Asset extends Model
         ]);
 
         $variation->original()->associate($this);
-        $variation->variation()->associate($variationAsset);
+        $variation->asset()->associate($variationAsset);
 
         $variation->save();
 
