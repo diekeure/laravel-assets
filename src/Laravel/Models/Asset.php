@@ -358,6 +358,35 @@ class Asset extends Model
     }
 
     /**
+     * Calculate a new hash.
+     * (This downloads the complete file to the tmp directory, so don't use too often)
+     * @return bool
+     */
+    public function getFreshHash()
+    {
+        $currentDisk = $this->getDisk();
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'asset');
+        $handle = fopen($tmpFile, "w");
+
+        $bh = $currentDisk->readStream($this->path);
+        while(!feof($bh)) {
+            fwrite($handle, fread($bh, 8192));
+        }
+        fclose($handle);
+
+        $file = new UploadedFile($tmpFile, $this->name);
+
+        $uploader = new AssetUploader();
+        $hash = $uploader->getHash($file);
+
+        // Remove temporary file
+        unlink($tmpFile);
+
+        return $hash;
+    }
+
+    /**
      * Return data that could be publicly exposed
      * @return array
      */
@@ -429,14 +458,38 @@ class Asset extends Model
     }
 
     /**
+     * Get the "root variation" of this asset.
+     * (A root asset has no root_asset_id, while all variations of the asset will have a root_asset_id set.)
+     * A variation is, for example, a resized version of the original asset.
+     * Note that variations of variations will still use the root asset.
+     */
+    public function getRootAsset()
+    {
+        if ($this->rootAsset === null) {
+            return $this;
+        } else {
+            return $this->rootAsset;
+        }
+    }
+    /**
+     * @deprecated Don't use! Use getRootAsset to make sure you always get a result.
+     * @return BelongsTo
+     */
+    public function rootAsset()
+    {
+        return $this->belongsTo(AssetFactory::getAssetClassName(), 'root_asset_id');
+    }
+
+    /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function variations()
     {
         return $this
+            ->getRootAsset()
             ->hasMany(Variation::class, 'original_asset_id', 'id')
             ->with('asset')
-        ;
+            ;
     }
 
     /**
@@ -454,14 +507,59 @@ class Asset extends Model
         $variationAsset = $uploader->getDuplicate($file);
         if (!$variationAsset) {
             $variationAsset = $uploader->getAssetFromFile($file);
+
             if ($this->user) {
                 $variationAsset->user()->associate($this->user);
             }
+
+            // Also keep the root asset link.
+            $variationAsset->rootAsset()->associate($this);
 
             // Save.
             $variationAsset->save();
 
             $uploader->storeAssetFile($file, $variationAsset);
+        }
+
+        return $this->linkVariation($variationName, $variationAsset);
+
+    }
+
+    /**
+     * @param $variationName
+     * @param Asset $variationAsset
+     * @return Variation
+     */
+    public function linkVariation($variationName, Asset $variationAsset)
+    {
+        // Check for name
+        if (empty($variationAsset->name)) {
+            $variationAsset->name = $this->name;
+        }
+
+        if (empty($variationAsset->type)) {
+            $variationAsset->type = $this->type;
+        }
+
+        if (empty($variationAsset->mimetype)) {
+            $variationAsset->mimetype = $this->mimetype;
+        }
+
+        if (empty($variationAsset->hash)) {
+            $variationAsset->hash = $variationAsset->getFreshHash();
+        }
+
+        // Is a new asset? Link it to the current asset.
+        if (!$variationAsset->exists) {
+            if ($this->user) {
+                $variationAsset->user()->associate($this->user);
+            }
+
+            // Also keep the root asset link.
+            $variationAsset->rootAsset()->associate($this);
+
+            // Save.
+            $variationAsset->save();
         }
 
         // create the variation

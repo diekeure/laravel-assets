@@ -122,7 +122,7 @@ class AssetUploader
      * @param UploadedFile $file
      * @return string
      */
-    protected function getHash(UploadedFile $file)
+    public function getHash(UploadedFile $file)
     {
         return md5_file($file->getPathname());
     }
