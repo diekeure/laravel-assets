@@ -2,6 +2,7 @@
 
 namespace CatLab\Assets\Laravel\Models;
 
+use App\Models\ProcessorJob;
 use CatLab\Assets\Laravel\Controllers\AssetController;
 use CatLab\Assets\Laravel\Helpers\AssetFactory;
 use CatLab\Assets\Laravel\Helpers\AssetUploader;
@@ -528,9 +529,10 @@ class Asset extends Model
     /**
      * @param $variationName
      * @param Asset $variationAsset
+     * @param ProcessorJob|null $job
      * @return Variation
      */
-    public function linkVariation($variationName, Asset $variationAsset)
+    public function linkVariation($variationName, Asset $variationAsset, ProcessorJob $job = null)
     {
         // Check for name
         if (empty($variationAsset->name)) {
@@ -568,6 +570,12 @@ class Asset extends Model
         ]);
 
         $variation->asset()->associate($variationAsset);
+
+        // Is job set?
+        if (isset($job)) {
+            $variation->processorJob()->associate($job);
+        }
+
         $variation->save();
 
         return $variation;
