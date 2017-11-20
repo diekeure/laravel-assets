@@ -4,6 +4,7 @@ namespace CatLab\Assets\Laravel\Models;
 
 use CatLab\Assets\Laravel\Helpers\AssetFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\ProcessorJob;
 
 /**
  * Class Variation
@@ -29,5 +30,13 @@ class Variation extends Model
     public function asset()
     {
         return $this->belongsTo(AssetFactory::getAssetClassName(), 'variation_asset_id');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function processorJob()
+    {
+        return $this->belongsTo(ProcessorJob::class);
     }
 }
