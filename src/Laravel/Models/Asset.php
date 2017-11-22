@@ -255,7 +255,7 @@ class Asset extends Model
         file_put_contents($tmpFile, $encoded);
 
         // Move the file to the new location
-        $variation = $this->createVariation($variationName, $tmpFile);
+        $variation = $this->createVariation($variationName, $tmpFile, true);
 
         // Remove temporary file
         unlink($tmpFile);
