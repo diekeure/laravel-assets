@@ -31,12 +31,4 @@ class Variation extends Model
     {
         return $this->belongsTo(AssetFactory::getAssetClassName(), 'variation_asset_id');
     }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function processorJob()
-    {
-        return $this->belongsTo(ProcessorJob::class);
-    }
 }

@@ -235,7 +235,7 @@ class Asset extends Model
         // Check for variations of this image with the desired dimensions.
 
         $variationName = 'resized:' . $width . ':' . $height;
-        $variation = $this->getVariation($variationName);
+        $variation = $this->getVariation($variationName, true);
 
         if ($variation !== null) {
             $this->wasCached = true;
@@ -265,9 +265,10 @@ class Asset extends Model
 
     /**
      * @param $name
+     * @param bool $shareGlobally TRUE to mark that this asset will always have this variation, whoever owns it.
      * @return Variation|null
      */
-    public function getVariation($name)
+    public function getVariation($name, $shareGlobally = false)
     {
         $variation = $this->variations;
         return $variation
@@ -497,9 +498,10 @@ class Asset extends Model
      * Create and upload a variation.
      * @param $variationName
      * @param $tmpFile
+     * @param bool $shareGlobally
      * @return Variation
      */
-    public function createVariation($variationName, $tmpFile)
+    public function createVariation($variationName, $tmpFile, $shareGlobally = false)
     {
         $file = new UploadedFile($tmpFile, $this->name);
         $uploader = new AssetUploader();
@@ -522,17 +524,17 @@ class Asset extends Model
             $uploader->storeAssetFile($file, $variationAsset);
         }
 
-        return $this->linkVariation($variationName, $variationAsset);
+        return $this->linkVariation($variationName, $variationAsset, $shareGlobally);
 
     }
 
     /**
      * @param $variationName
      * @param Asset $variationAsset
-     * @param ProcessorJob|null $job
+     * @param $shareGlobally
      * @return Variation
      */
-    public function linkVariation($variationName, Asset $variationAsset, ProcessorJob $job = null)
+    public function linkVariation($variationName, Asset $variationAsset, $shareGlobally = false)
     {
         // Check for name
         if (empty($variationAsset->name)) {
@@ -567,7 +569,7 @@ class Asset extends Model
         // create the variation
         $variation = $this->createVariationModel([
             'variation_name' => $variationName
-        ]);
+        ], $shareGlobally);
 
         $variation->asset()->associate($variationAsset);
 
@@ -592,9 +594,10 @@ class Asset extends Model
 
     /**
      * @param array $attributes
+     * @param bool $shareGlobally
      * @return Variation
      */
-    protected function createVariationModel(array $attributes)
+    protected function createVariationModel(array $attributes, $shareGlobally = false)
     {
         $variation = new Variation($attributes);
         $variation->original()->associate($this);
