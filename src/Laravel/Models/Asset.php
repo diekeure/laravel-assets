@@ -2,7 +2,6 @@
 
 namespace CatLab\Assets\Laravel\Models;
 
-use App\Models\ProcessorJob;
 use CatLab\Assets\Laravel\Controllers\AssetController;
 use CatLab\Assets\Laravel\Helpers\AssetFactory;
 use CatLab\Assets\Laravel\Helpers\AssetUploader;
@@ -572,11 +571,6 @@ class Asset extends Model
         ], $shareGlobally);
 
         $variation->asset()->associate($variationAsset);
-
-        // Is job set?
-        if (isset($job)) {
-            $variation->processorJob()->associate($job);
-        }
 
         $variation->save();
 
