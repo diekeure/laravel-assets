@@ -91,6 +91,33 @@ class AssetController
             ];
         }
 
+        // allow only providing one dimension
+        elseif (
+            Request::input(self::QUERY_PARAM_WIDTH) ||
+            Request::input(self::QUERY_PARAM_HEIGHT)
+        ) {
+            // If asset has no width or height, we can't do these calculations.
+            if (
+                !$asset->width ||
+                !$asset->height
+            ) {
+                return [ null, null ];
+            }
+
+            if (Request::input(self::QUERY_PARAM_WIDTH)) {
+                $targetWidth = intval(Request::input(self::QUERY_PARAM_WIDTH));
+                $factor = $targetWidth / $asset->width;
+            } else {
+                $targetHeight = intval(Request::input(self::QUERY_PARAM_HEIGHT));
+                $factor = $targetHeight / $asset->height;
+            }
+
+            $targetWidth = ceil($factor * $asset->width);
+            $targetHeight = ceil($factor * $asset->height);
+
+            return [ $targetWidth, $targetHeight ];
+        }
+
         return [ null, null ];
     }
 
