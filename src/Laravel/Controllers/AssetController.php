@@ -23,6 +23,9 @@ class AssetController
     const QUERY_PARAM_WIDTH = 'width';
     const QUERY_PARAM_HEIGHT = 'height';
 
+    const QUERY_SHAPE_COIN = 'coin';
+    const QUERY_SHAPE_CIRCLE = 'circle';
+
     /**
      * @param $assetId
      * @return \Symfony\Component\HttpFoundation\Response
@@ -63,6 +66,7 @@ class AssetController
             $shape = Request::input(self::QUERY_PARAM_SHAPE);
             switch ($shape) {
                 case self::QUERY_PARAM_SQUARE:
+                case self::QUERY_SHAPE_COIN:
 
                     if (Request::input(self::QUERY_PARAM_SIZE)) {
                         return [
@@ -127,8 +131,10 @@ class AssetController
      */
     protected function getImageResponse(Asset $asset)
     {
+        $shape = Request::input(self::QUERY_PARAM_SHAPE);
+
         $targetSize = $this->getImageSize($asset);
-        $variation = $asset->getResizedImage($targetSize[0], $targetSize[1]);
+        $variation = $asset->getResizedImage($targetSize[0], $targetSize[1], $shape);
 
         return $this->getAssetResponse($variation);
     }

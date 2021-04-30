@@ -218,7 +218,7 @@ class Asset extends Model
      * @param $height
      * @return Asset
      */
-    public function getResizedImage($width, $height)
+    public function getResizedImage($width, $height, $shape = null)
     {
         if (!$this->isImage()) {
             return $this;
@@ -234,6 +234,10 @@ class Asset extends Model
         // Check for variations of this image with the desired dimensions.
 
         $variationName = 'resized:' . $width . ':' . $height;
+        if ($shape) {
+            $variationName .= ':' . $shape;
+        }
+
         $variation = $this->getVariation($variationName, true);
 
         if ($variation !== null) {
@@ -246,6 +250,30 @@ class Asset extends Model
         // Actual resize.
         $image = Image::make($this->getOriginalImage());
         $image = $image->fit($width, $height);
+
+        // Apply a mask
+        switch ($shape) {
+            case AssetController::QUERY_SHAPE_CIRCLE:
+            case AssetController::QUERY_SHAPE_COIN:
+
+                $maskImage = Image::canvas($width, $height);
+                $maskImage->circle($width, $width / 2, $height / 2, function ($draw) {
+                    $draw->background('#ffffff');
+                });
+
+                $image->mask($maskImage, true);
+
+            // don't close, instead check if we need to add a border to make a 'coin'
+            case AssetController::QUERY_SHAPE_COIN:
+
+                $borderImage = Image::canvas($width, $height);
+                $borderImage->circle($width, $width / 2, $height / 2, function ($draw) {
+                    $draw->border(1, '#000');
+                });
+
+                $image->insert($borderImage);
+                break;
+        }
 
         $encoded = $image->encode();
 
