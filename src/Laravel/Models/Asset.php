@@ -231,6 +231,8 @@ class Asset extends Model
         $width = (int) $width;
         $height = (int) $height;
 
+        $forceEncoding = null;
+
         // Check for variations of this image with the desired dimensions.
 
         $variationName = 'resized:' . $width . ':' . $height;
@@ -262,6 +264,7 @@ class Asset extends Model
                 });
 
                 $image->mask($maskImage, true);
+                $forceEncoding = 'png';
 
             // don't close, instead check if we need to add a border to make a 'coin'
             case AssetController::QUERY_SHAPE_COIN:
@@ -275,7 +278,11 @@ class Asset extends Model
                 break;
         }
 
-        $encoded = $image->encode();
+        if ($forceEncoding) {
+            $encoded = $image->encode($forceEncoding);
+        } else {
+            $encoded = $image->encode();
+        }
 
         // put in temporary file and upload as new asset.
         $tmpFile = tempnam(sys_get_temp_dir(), 'asset');
