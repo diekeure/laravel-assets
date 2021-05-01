@@ -216,10 +216,18 @@ class Asset extends Model
      * Get a resized variation of this image.
      * @param $width
      * @param $height
+     * @param null $shape
+     * @param null $borderWidth
+     * @param null $borderColor
      * @return Asset
      */
-    public function getResizedImage($width, $height, $shape = null)
-    {
+    public function getResizedImage(
+        $width,
+        $height,
+        $shape = null,
+        $borderWidth = null,
+        $borderColor = null
+    ) {
         if (!$this->isImage()) {
             return $this;
         }
@@ -235,9 +243,36 @@ class Asset extends Model
 
         // Check for variations of this image with the desired dimensions.
 
+        // Validate border
+        if (isset($borderWidth)) {
+            $borderWidth = intval($borderWidth);
+        }
+
+        if ($borderWidth < 1) {
+            $borderWidth = null;
+            $borderColor = null;
+        } else {
+            if (!isset($borderColor) || !$this->isValidColor($borderColor)) {
+                $borderColor = '#000';
+            }
+        }
+
         $variationName = 'resized:' . $width . ':' . $height;
         if ($shape) {
             $variationName .= ':' . $shape;
+        }
+
+        if ($borderWidth) {
+            $variationName .= ':bw-' . intval($borderWidth);
+        }
+
+        if ($borderColor) {
+            $variationName .= ':bc-' . $borderColor;
+        }
+
+        // name too long? hash it.
+        if (strlen($variationName) > 32) {
+            $variationName = md5($variationName);
         }
 
         $variation = $this->getVariation($variationName, true);
@@ -256,26 +291,20 @@ class Asset extends Model
         // Apply a mask
         switch ($shape) {
             case AssetController::QUERY_SHAPE_CIRCLE:
-            case AssetController::QUERY_SHAPE_COIN:
 
                 $maskImage = Image::canvas($width, $height);
-                $maskImage->circle($width, $width / 2, $height / 2, function ($draw) {
+                $maskImage->circle($width - 3, ($width / 2), ($height / 2), function ($draw) {
                     $draw->background('#ffffff');
                 });
 
                 $image->mask($maskImage, true);
                 $forceEncoding = 'png';
-
-            // don't close, instead check if we need to add a border to make a 'coin'
-            case AssetController::QUERY_SHAPE_COIN:
-
-                $borderImage = Image::canvas($width, $height);
-                $borderImage->circle($width, $width / 2, $height / 2, function ($draw) {
-                    $draw->border(1, '#000');
-                });
-
-                $image->insert($borderImage);
                 break;
+        }
+
+        // should we draw a border?
+        if ($borderWidth > 0) {
+            $this->drawBorder($image, $shape, $width, $height, $borderWidth, $borderColor);
         }
 
         if ($forceEncoding) {
@@ -295,6 +324,15 @@ class Asset extends Model
         unlink($tmpFile);
 
         return $variation->asset;
+    }
+
+    /**
+     * @param $hex_color
+     * @return false|true
+     */
+    protected function isValidColor($hex_color)
+    {
+        return preg_match('/^#[a-f0-9]{6}$/i', $hex_color);
     }
 
     /**
@@ -632,5 +670,49 @@ class Asset extends Model
         $variation->original()->associate($this);
 
         return $variation;
+    }
+
+    /**
+     * @param \Intervention\Image\Image $image
+     * @param $shape
+     * @param $width
+     * @param $height
+     * @param $borderWidth
+     * @param $borderColor
+     */
+    protected function drawBorder(
+        \Intervention\Image\Image $image,
+        $shape,
+        $width,
+        $height,
+        $borderWidth,
+        $borderColor
+    ) {
+        // only circles are supported at the moment.
+        if ($shape !== AssetController::QUERY_SHAPE_CIRCLE) {
+            return;
+        }
+
+        $qualityResize = 1;
+
+        $borderImage = Image::canvas(
+            ($width + $borderWidth / 2) * $qualityResize,
+            ($height + $borderWidth / 2) * $qualityResize
+        );
+
+        $borderImage->circle(
+            ($width - ($borderWidth / 2) - 1) * $qualityResize,
+            (($width / 2)) * $qualityResize,
+            (($height / 2)) * $qualityResize,
+            function ($draw) use ($qualityResize, $borderWidth, $borderColor) {
+
+                $draw->border($borderWidth * $qualityResize, $borderColor);
+
+            });
+
+        //$borderImage = $borderImage->resize($width, $height);
+
+        $image->insert($borderImage);
+
     }
 }

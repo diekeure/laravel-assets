@@ -8,6 +8,7 @@ use CatLab\Assets\Laravel\Models\Asset;
 use DateInterval;
 use DateTime;
 use DateTimeImmutable;
+use Illuminate\Support\Str;
 use Request;
 use Response;
 
@@ -22,8 +23,9 @@ class AssetController
     const QUERY_PARAM_SIZE = 'size';
     const QUERY_PARAM_WIDTH = 'width';
     const QUERY_PARAM_HEIGHT = 'height';
+    const QUERY_PARAM_BORDER_WIDTH = 'borderWidth';
+    const QUERY_PARAM_BORDER_COLOR = 'borderColor';
 
-    const QUERY_SHAPE_COIN = 'coin';
     const QUERY_SHAPE_CIRCLE = 'circle';
 
     /**
@@ -66,7 +68,7 @@ class AssetController
             $shape = Request::input(self::QUERY_PARAM_SHAPE);
             switch ($shape) {
                 case self::QUERY_PARAM_SQUARE:
-                case self::QUERY_SHAPE_COIN:
+                case self::QUERY_SHAPE_CIRCLE:
 
                     if (Request::input(self::QUERY_PARAM_SIZE)) {
                         return [
@@ -82,6 +84,13 @@ class AssetController
             return [
                 Request::input(self::QUERY_PARAM_SQUARE),
                 Request::input(self::QUERY_PARAM_SQUARE)
+            ];
+        }
+
+        if (Request::input(self::QUERY_SHAPE_CIRCLE)) {
+            return [
+                Request::input(self::QUERY_SHAPE_CIRCLE),
+                Request::input(self::QUERY_SHAPE_CIRCLE)
             ];
         }
 
@@ -133,11 +142,23 @@ class AssetController
     {
         $shape = Request::input(self::QUERY_PARAM_SHAPE);
 
+        $borderWidth = Request::input(self::QUERY_PARAM_BORDER_WIDTH);
+        $borderColor = Request::input(self::QUERY_PARAM_BORDER_COLOR);
+        if ($borderColor && !Str::startsWith($borderColor, '#')) {
+            $borderColor = '#' . $borderColor;
+        }
+
         $targetSize = $this->getImageSize($asset);
-        $variation = $asset->getResizedImage($targetSize[0], $targetSize[1], $shape);
+        $variation = $asset->getResizedImage(
+            $targetSize[0],
+            $targetSize[1],
+            $shape,
+            $borderWidth,
+            $borderColor
+        );
 
         //return $this->getAssetResponse($variation);
-        return \Response::make(
+        $response = \Response::make(
             $variation->getData(),
             200,
             array_merge(
@@ -147,6 +168,8 @@ class AssetController
                 $this->getCacheHeaders($asset)
             )
         );
+
+        return $response;
     }
 
     /**
@@ -181,6 +204,7 @@ class AssetController
      * @param Asset $asset
      * @param string[] $forceHeaders
      * @return \Symfony\Component\HttpFoundation\StreamedResponse
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     protected function getAssetResponse(Asset $asset, $forceHeaders = [])
     {
@@ -189,6 +213,7 @@ class AssetController
         ], $forceHeaders);
 
         $disk = $asset->getDisk();
+
         $stream = $disk->readStream($asset->path);
 
         $size = $disk->size($asset->path);
