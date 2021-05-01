@@ -136,7 +136,17 @@ class AssetController
         $targetSize = $this->getImageSize($asset);
         $variation = $asset->getResizedImage($targetSize[0], $targetSize[1], $shape);
 
-        return $this->getAssetResponse($variation);
+        //return $this->getAssetResponse($variation);
+        return \Response::make(
+            $variation->getData(),
+            200,
+            array_merge(
+                [
+                    'Content-type' => $asset->mimetype
+                ],
+                $this->getCacheHeaders($asset)
+            )
+        );
     }
 
     /**
