@@ -3,6 +3,7 @@
 namespace CatLab\Assets\Laravel\PathGenerators;
 
 use CatLab\Assets\Laravel\Models\Asset;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
@@ -30,9 +31,9 @@ class GroupedRandomPrefixPathGenerator extends PathGenerator
         $extension = $file->getClientOriginalExtension();
 
         if ($asset->id === $asset->getRootAsset()->id) {
-            $filename = str_random(8);
+            $filename = Str::random(8);
         } else {
-            $filename = 'v' . $asset->variations->count() . '-' . str_random(8);
+            $filename = 'v' . $asset->variations->count() . '-' . Str::random(8);
         }
 
         return $this->getUploadFolder() . '/' . $assetPath
