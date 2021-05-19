@@ -4,11 +4,11 @@ namespace CatLab\Assets\Laravel\Controllers;
 
 use CatLab\Assets\Laravel\Helpers\AssetFactory;
 use CatLab\Assets\Laravel\Models\Asset;
+use Illuminate\Support\Str;
 
 use DateInterval;
 use DateTime;
 use DateTimeImmutable;
-use Illuminate\Support\Str;
 use Request;
 use Response;
 
@@ -31,6 +31,7 @@ class AssetController
     /**
      * @param $assetId
      * @return \Symfony\Component\HttpFoundation\Response
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function view($assetId)
     {
@@ -41,20 +42,6 @@ class AssetController
         }
 
         return $this->viewAsset($asset);
-    }
-
-    /**
-     * @param Asset $asset
-     * @return \Symfony\Component\HttpFoundation\Response
-     */
-    protected function viewAsset(Asset $asset)
-    {
-        if ($asset->isImage() && !$asset->isSvg()) {
-            return $this->getImageResponse($asset);
-        }
-
-        // Do some magic here.
-        return $this->getAssetResponse($asset, []);
     }
 
     /**
@@ -136,44 +123,6 @@ class AssetController
 
     /**
      * @param Asset $asset
-     * @return \Illuminate\Http\Response
-     */
-    protected function getImageResponse(Asset $asset)
-    {
-        $shape = Request::input(self::QUERY_PARAM_SHAPE);
-
-        $borderWidth = Request::input(self::QUERY_PARAM_BORDER_WIDTH);
-        $borderColor = Request::input(self::QUERY_PARAM_BORDER_COLOR);
-        if ($borderColor && !Str::startsWith($borderColor, '#')) {
-            $borderColor = '#' . $borderColor;
-        }
-
-        $targetSize = $this->getImageSize($asset);
-        $variation = $asset->getResizedImage(
-            $targetSize[0],
-            $targetSize[1],
-            $shape,
-            $borderWidth,
-            $borderColor
-        );
-
-        //return $this->getAssetResponse($variation);
-        $response = \Response::make(
-            $variation->getData(),
-            200,
-            array_merge(
-                [
-                    'Content-type' => $asset->mimetype
-                ],
-                $this->getCacheHeaders($asset)
-            )
-        );
-
-        return $response;
-    }
-
-    /**
-     * @param Asset $asset
      * @return array
      */
     protected function getCacheHeaders(Asset $asset)
@@ -198,6 +147,64 @@ class AssetController
         $endTime = $reference->add($dateInterval);
 
         return $endTime->getTimestamp() - $reference->getTimestamp();
+    }
+
+    /**
+     * @param Asset $asset
+     * @return \Symfony\Component\HttpFoundation\Response
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
+    protected function viewAsset(Asset $asset)
+    {
+        $asset->updateLastUsed();
+
+        if ($asset->isImage() && !$asset->isSvg()) {
+            return $this->getImageResponse($asset);
+        }
+
+        // Do some magic here.
+        return $this->getAssetResponse($asset, []);
+    }
+
+    /**
+     * @param Asset $asset
+     * @return \Illuminate\Http\Response
+     */
+    protected function getImageResponse(Asset $asset)
+    {
+        $shape = Request::input(self::QUERY_PARAM_SHAPE);
+
+        $borderWidth = Request::input(self::QUERY_PARAM_BORDER_WIDTH);
+        $borderColor = Request::input(self::QUERY_PARAM_BORDER_COLOR);
+        if ($borderColor && !Str::startsWith($borderColor, '#')) {
+            $borderColor = '#' . $borderColor;
+        }
+
+        $targetSize = $this->getImageSize($asset);
+        $variation = $asset->getResizedImage(
+            $targetSize[0],
+            $targetSize[1],
+            $shape,
+            $borderWidth,
+            $borderColor
+        );
+
+        // Set last used for variation as well, as we will use this to clear 'cached' resized images.
+        $variation->updateLastUsed();
+
+        //return $this->getAssetResponse($variation);
+        $response = \Response::make(
+            $variation->getData(),
+            200,
+            array_merge(
+                [
+                    'Content-type' => $asset->mimetype
+                ],
+                $this->getCacheHeaders($asset)
+            )
+        );
+
+        return $response;
     }
 
     /**
@@ -257,7 +264,7 @@ class AssetController
             $end = $c_end;
 
             // Rewrite the content range header
-            $headers['Content-Range'] = "bytes {$start}-{$end}/{$size}";
+            $headers['Content-Range'] = "Bytes {$start}-{$end}/{$size}";
 
             $httpStatus = 206;
         }

@@ -4,7 +4,6 @@ namespace CatLab\Assets\Laravel\Models;
 
 use CatLab\Assets\Laravel\Helpers\AssetFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\ProcessorJob;
 
 /**
  * Class Variation
@@ -30,5 +29,25 @@ class Variation extends Model
     public function asset()
     {
         return $this->belongsTo(AssetFactory::getAssetClassName(), 'variation_asset_id');
+    }
+
+    /**
+     * @return bool|null
+     * @throws \Exception
+     */
+    public function delete()
+    {
+        // Remember our asset
+        $asset = $this->asset;
+
+        // First remove the variation
+        $result = parent::delete();
+
+        // Check if we can delete the related asset as well
+        if (Variation::where('variation_asset_id', '=', $asset->id)->count() === 0) {
+            $asset->delete();
+        }
+
+        return $result;
     }
 }

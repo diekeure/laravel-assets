@@ -5,7 +5,6 @@ namespace CatLab\Assets\Laravel\Models;
 use CatLab\Assets\Laravel\Controllers\AssetController;
 use CatLab\Assets\Laravel\Helpers\AssetFactory;
 use CatLab\Assets\Laravel\Helpers\AssetUploader;
-use CatLab\Assets\Laravel\Helpers\Cache;
 use CatLab\Assets\Laravel\PathGenerators\PathGenerator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -42,6 +41,15 @@ class Asset extends Model
         'path',
         'hash',
         'disk'
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'last_used_at' => 'datetime:Y-m-d',
     ];
 
     /**
@@ -197,6 +205,7 @@ class Asset extends Model
     /**
      * Get raw data.
      * @return string
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function getData()
     {
@@ -206,6 +215,7 @@ class Asset extends Model
     /**
      * Return the image path that will be used by Image Intervention
      * @return string
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     private function getOriginalImage()
     {
@@ -220,6 +230,7 @@ class Asset extends Model
      * @param null $borderWidth
      * @param null $borderColor
      * @return Asset
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function getResizedImage(
         $width,
@@ -364,6 +375,7 @@ class Asset extends Model
      * Delete the asset
      * @param bool $deleteFileFromDisk
      * @return bool|null
+     * @throws \Exception
      */
     public function delete($deleteFileFromDisk = true)
     {
@@ -400,6 +412,7 @@ class Asset extends Model
      * Check if provided file matches the asset file
      * @param File $file
      * @return bool
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function isFileEqual(File $file)
     {
@@ -435,6 +448,7 @@ class Asset extends Model
      * Calculate a new hash.
      * (This downloads the complete file to the tmp directory, so don't use too often)
      * @return bool
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function getFreshHash()
     {
@@ -486,6 +500,7 @@ class Asset extends Model
     /**
      * Move file from one disk to another.
      * @param string $disk
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function moveToDisk($disk)
     {
@@ -562,8 +577,7 @@ class Asset extends Model
         return $this
             ->getRootAsset()
             ->hasMany(Variation::class, 'original_asset_id', 'id')
-            ->with('asset')
-            ;
+            ->with('asset');
     }
 
     /**
@@ -572,6 +586,7 @@ class Asset extends Model
      * @param $tmpFile
      * @param bool $shareGlobally
      * @return Variation
+     * @throws \Exception
      */
     public function createVariation($variationName, $tmpFile, $shareGlobally = false)
     {
@@ -605,6 +620,7 @@ class Asset extends Model
      * @param Asset $variationAsset
      * @param $shareGlobally
      * @return Variation
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function linkVariation($variationName, Asset $variationAsset, $shareGlobally = false)
     {
@@ -657,6 +673,20 @@ class Asset extends Model
     public function getExtension()
     {
         return pathinfo($this->name, PATHINFO_EXTENSION);
+    }
+
+    /**
+     * Update the last_used property
+     */
+    public function updateLastUsed()
+    {
+        if (
+            $this->last_used_at === null ||
+            $this->last_used_at < (new \DateTime())->sub(new \DateInterval('P1D'))
+        ) {
+            $this->last_used_at = new \DateTime();
+            $this->save();
+        }
     }
 
     /**
