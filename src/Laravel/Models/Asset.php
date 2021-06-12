@@ -753,5 +753,8 @@ class Asset extends Model
 
         $image->insert($borderImage);
 
+        // and resize back to the original size.
+        $image->resize($width, $height);
+
     }
 }
