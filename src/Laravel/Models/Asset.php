@@ -723,24 +723,20 @@ class Asset extends Model
             return;
         }
 
-        $qualityResize = 1;
-
         $borderImage = Image::canvas(
-            ($width + $borderWidth / 2) * $qualityResize,
-            ($height + $borderWidth / 2) * $qualityResize
+            ($width + $borderWidth / 2),
+            ($height + $borderWidth / 2)
         );
 
         $borderImage->circle(
-            ($width - ($borderWidth / 2) - 1) * $qualityResize,
-            (($width / 2)) * $qualityResize,
-            (($height / 2)) * $qualityResize,
-            function ($draw) use ($qualityResize, $borderWidth, $borderColor) {
+            $width - $borderWidth,
+            floor($width / 2),
+            floor($height / 2),
+            function ($draw) use ($borderWidth, $borderColor) {
 
-                $draw->border($borderWidth * $qualityResize, $borderColor);
+                $draw->border($borderWidth, $borderColor);
 
             });
-
-        //$borderImage = $borderImage->resize($width, $height);
 
         $image->insert($borderImage);
 

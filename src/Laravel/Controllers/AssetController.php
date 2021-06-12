@@ -169,6 +169,7 @@ class AssetController
     /**
      * @param Asset $asset
      * @return \Illuminate\Http\Response
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     protected function getImageResponse(Asset $asset)
     {
