@@ -25,6 +25,7 @@ class AssetController
     const QUERY_PARAM_HEIGHT = 'height';
     const QUERY_PARAM_BORDER_WIDTH = 'borderWidth';
     const QUERY_PARAM_BORDER_COLOR = 'borderColor';
+    const QUERY_PARAM_CACHE = 'cache';
 
     const QUERY_SHAPE_CIRCLE = 'circle';
 
@@ -174,6 +175,7 @@ class AssetController
     protected function getImageResponse(Asset $asset)
     {
         $shape = Request::input(self::QUERY_PARAM_SHAPE);
+        $refresh = Request::input(self::QUERY_PARAM_CACHE) == 0;
 
         $borderWidth = Request::input(self::QUERY_PARAM_BORDER_WIDTH);
         $borderColor = Request::input(self::QUERY_PARAM_BORDER_COLOR);
@@ -187,7 +189,8 @@ class AssetController
             $targetSize[1],
             $shape,
             $borderWidth,
-            $borderColor
+            $borderColor,
+            $refresh
         );
 
         // Set last used for variation as well, as we will use this to clear 'cached' resized images.

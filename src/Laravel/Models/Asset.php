@@ -237,7 +237,8 @@ class Asset extends Model
         $height,
         $shape = null,
         $borderWidth = null,
-        $borderColor = null
+        $borderColor = null,
+        $refresh = false
     ) {
         if (!$this->isImage()) {
             return $this;
@@ -289,8 +290,15 @@ class Asset extends Model
         $variation = $this->getVariation($variationName, true);
 
         if ($variation !== null) {
-            $this->wasCached = true;
-            return $variation->asset;
+
+            // Do we want to refresh this image?
+            // If so, we need to delete the asset.
+            if ($refresh) {
+                $variation->delete();
+            } else {
+                $this->wasCached = true;
+                return $variation->asset;
+            }
         }
 
         $this->wasCached = false;
@@ -723,15 +731,20 @@ class Asset extends Model
             return;
         }
 
+        $image->resizeCanvas(
+            ceil($width + ($borderWidth / 2)),
+            ceil($height + ($borderWidth / 2))
+        );
+
         $borderImage = Image::canvas(
-            ($width + $borderWidth / 2),
-            ($height + $borderWidth / 2)
+            ($width + $borderWidth),
+            ($height + $borderWidth)
         );
 
         $borderImage->circle(
             $width - $borderWidth,
-            floor($width / 2),
-            floor($height / 2),
+            floor(($width + $borderWidth * 0.5) / 2),
+            floor(($height + $borderWidth * 0.5) / 2),
             function ($draw) use ($borderWidth, $borderColor) {
 
                 $draw->border($borderWidth, $borderColor);
