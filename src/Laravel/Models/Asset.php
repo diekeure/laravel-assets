@@ -415,7 +415,7 @@ class Asset extends Model
             return null;
 
         } catch (LockTimeoutException $e) {
-            abort(500, 'Failed getting a varation lock.');
+            abort(500, 'Failed getting a variation lock.');
         } finally {
             optional($lock)->release();
         }
