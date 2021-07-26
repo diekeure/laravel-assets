@@ -4,11 +4,11 @@
   "type": "library",
   "require": {
     "php": ">=7.0.0",
-    "catlabinteractive/base": "~1.0"
+    "catlabinteractive/base": "~1.0",
+    "laravel/framework": "^8.51.0"
   },
   "require-dev": {
-    "phpunit/phpunit": "*",
-    "laravel/framework": "^8.51.0"
+    "phpunit/phpunit": "*"
   },
   "license": "MIT",
   "authors": [
