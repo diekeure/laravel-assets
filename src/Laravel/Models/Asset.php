@@ -389,33 +389,36 @@ class Asset extends Model
         }
 
         // Make sure we use a lock to prevent other processes from generating the same variation
-        $lock = Cache::lock('ctlb-variation-' . $this->id . ':' . $name);
+        $lock = Cache::lock('ctlb-variation-' . $this->id . ':' . $name, self::VARIATION_LOCK_EXPIRE);
 
         try {
             $lock->block(self::VARIATION_LOCK_BLOCK);
 
             // do the actual generating
-            $variation = $generator($this);
+            $variationPath = $generator($this);
+            if ($variationPath instanceof Variation) {
+                return $variationPath;
+            }
 
             // returned a string? In that case we should thread it as a temporary file
-            if (is_string($variation)) {
+            if (is_string($variationPath)) {
                 // Move the file to the new location
-                $variation = $asset->createVariation($name, $variation, true);
+                $variation = $this->createVariation($name, $variationPath, true);
 
                 // Remove temporary file
-                unlink($variation);
+                unlink($variationPath);
+
+                return $variation;
             }
 
             // and return the newly created variation.
-            return $variation;
+            return null;
 
         } catch (LockTimeoutException $e) {
             abort(500, 'Failed getting a varation lock.');
         } finally {
-            //optional($lock)->release();
+            optional($lock)->release();
         }
-
-
     }
 
     /**
