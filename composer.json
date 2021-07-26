@@ -8,7 +8,7 @@
   },
   "require-dev": {
     "phpunit/phpunit": "*",
-    "laravel/framework": "^8.40.0"
+    "laravel/framework": "^8.51.0"
   },
   "license": "MIT",
   "authors": [

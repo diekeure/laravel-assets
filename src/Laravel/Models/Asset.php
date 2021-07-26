@@ -6,9 +6,11 @@ use CatLab\Assets\Laravel\Controllers\AssetController;
 use CatLab\Assets\Laravel\Helpers\AssetFactory;
 use CatLab\Assets\Laravel\Helpers\AssetUploader;
 use CatLab\Assets\Laravel\PathGenerators\PathGenerator;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\File\File;
 
 use Image;
@@ -27,6 +29,12 @@ class Asset extends Model
     const STORAGE_DISK = 'local';
 
     const CACHE_LIFETIME = 60*60*24*365;
+
+    // How long before a lock expires?
+    const VARIATION_LOCK_EXPIRE = 30;
+
+    // How long to wait before giving up trying to get a lock
+    const VARIATION_LOCK_BLOCK = 30;
 
     /**
      * @var bool
@@ -229,6 +237,7 @@ class Asset extends Model
      * @param null $shape
      * @param null $borderWidth
      * @param null $borderColor
+     * @param bool $refresh
      * @return Asset
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
@@ -250,8 +259,6 @@ class Asset extends Model
 
         $width = (int) $width;
         $height = (int) $height;
-
-        $forceEncoding = null;
 
         // Check for variations of this image with the desired dimensions.
 
@@ -287,60 +294,56 @@ class Asset extends Model
             $variationName = md5($variationName);
         }
 
-        $variation = $this->getVariation($variationName, true);
+        $variation = $this->getVariationOrGenerate(
+            $variationName,
+            true,
+            $refresh,
+            function(Asset $asset) use (
+                $width,
+                $height,
+                $shape,
+                $borderWidth,
+                $borderColor
+            ) {
+                $forceEncoding = null;
 
-        if ($variation !== null) {
+                // Actual resize.
+                $image = Image::make($asset->getOriginalImage());
+                $image = $image->fit($width, $height);
 
-            // Do we want to refresh this image?
-            // If so, we need to delete the asset.
-            if ($refresh) {
-                $variation->delete();
-            } else {
-                $this->wasCached = true;
-                return $variation->asset;
+                // Apply a mask
+                switch ($shape) {
+                    case AssetController::QUERY_SHAPE_CIRCLE:
+
+                        $maskImage = Image::canvas($width, $height);
+                        $maskImage->circle($width - 3, ($width / 2), ($height / 2), function ($draw) {
+                            $draw->background('#ffffff');
+                        });
+
+                        $image->mask($maskImage, true);
+                        $forceEncoding = 'png';
+                        break;
+                }
+
+                // should we draw a border?
+                if ($borderWidth > 0) {
+                    $asset->drawBorder($image, $shape, $width, $height, $borderWidth, $borderColor);
+                }
+
+                if ($forceEncoding) {
+                    $encoded = $image->encode($forceEncoding);
+                } else {
+                    $encoded = $image->encode();
+                }
+
+                // put in temporary file and upload as new asset.
+                $tmpFile = tempnam(sys_get_temp_dir(), 'asset');
+                file_put_contents($tmpFile, $encoded);
+
+                // if we return a string (= a filename), getVariation will do the rest.
+                return $tmpFile;
             }
-        }
-
-        $this->wasCached = false;
-
-        // Actual resize.
-        $image = Image::make($this->getOriginalImage());
-        $image = $image->fit($width, $height);
-
-        // Apply a mask
-        switch ($shape) {
-            case AssetController::QUERY_SHAPE_CIRCLE:
-
-                $maskImage = Image::canvas($width, $height);
-                $maskImage->circle($width - 3, ($width / 2), ($height / 2), function ($draw) {
-                    $draw->background('#ffffff');
-                });
-
-                $image->mask($maskImage, true);
-                $forceEncoding = 'png';
-                break;
-        }
-
-        // should we draw a border?
-        if ($borderWidth > 0) {
-            $this->drawBorder($image, $shape, $width, $height, $borderWidth, $borderColor);
-        }
-
-        if ($forceEncoding) {
-            $encoded = $image->encode($forceEncoding);
-        } else {
-            $encoded = $image->encode();
-        }
-
-        // put in temporary file and upload as new asset.
-        $tmpFile = tempnam(sys_get_temp_dir(), 'asset');
-        file_put_contents($tmpFile, $encoded);
-
-        // Move the file to the new location
-        $variation = $this->createVariation($variationName, $tmpFile, true);
-
-        // Remove temporary file
-        unlink($tmpFile);
+        );
 
         return $variation->asset;
     }
@@ -359,7 +362,67 @@ class Asset extends Model
      * @param bool $shareGlobally TRUE to mark that this asset will always have this variation, whoever owns it.
      * @return Variation|null
      */
-    public function getVariation($name, $shareGlobally = false)
+    public function getVariationOrGenerate(
+        $name,
+        $shareGlobally = false,
+        $refresh = false,
+        $generator = null
+    ) {
+        $variation = $this->getVariation($name, $shareGlobally);
+        if ($variation !== null) {
+            // Do we want to refresh this image?
+            // If so, we need to delete the asset.
+            if ($refresh) {
+                $variation->delete();
+            } else {
+                $this->wasCached = true;
+                return $variation;
+            }
+        }
+
+        $this->wasCached = false;
+
+        // Do we have a generator?
+        // If not, we must return null now.
+        if (!$generator) {
+            return null;
+        }
+
+        // Make sure we use a lock to prevent other processes from generating the same variation
+        $lock = Cache::lock('ctlb-variation-' . $this->id . ':' . $name);
+
+        try {
+            $lock->block(self::VARIATION_LOCK_BLOCK);
+
+            // do the actual generating
+            $variation = $generator($this);
+
+            // returned a string? In that case we should thread it as a temporary file
+            if (is_string($variation)) {
+                // Move the file to the new location
+                $variation = $asset->createVariation($name, $variation, true);
+
+                // Remove temporary file
+                unlink($variation);
+            }
+
+            // and return the newly created variation.
+            return $variation;
+
+        } catch (LockTimeoutException $e) {
+            abort(500, 'Failed getting a varation lock.');
+        } finally {
+            //optional($lock)->release();
+        }
+
+
+    }
+
+    /**
+     * @param $name
+     * @return mixed
+     */
+    public function getVariation($name, $shareGlobally)
     {
         $variation = $this->variations;
         return $variation
