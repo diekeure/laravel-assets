@@ -175,7 +175,7 @@ class AssetController
     protected function getImageResponse(Asset $asset)
     {
         $shape = Request::input(self::QUERY_PARAM_SHAPE);
-        $refresh = Request::input(self::QUERY_PARAM_CACHE) === '1';
+        $refresh = Request::input(self::QUERY_PARAM_CACHE) === '0';
 
         $borderWidth = Request::input(self::QUERY_PARAM_BORDER_WIDTH);
         $borderColor = Request::input(self::QUERY_PARAM_BORDER_COLOR);
