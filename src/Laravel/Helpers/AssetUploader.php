@@ -131,10 +131,13 @@ class AssetUploader
      * @param UploadedFile $file
      * @return mixed
      */
-    private function getMimeType(UploadedFile $file)
+    protected function getMimeType(UploadedFile $file)
     {
         $extension = $file->getClientOriginalExtension();
         switch ($extension) {
+            case 'css':
+                return 'text/css';
+
             case 'html':
             case 'xhtml':
             case 'htm':
