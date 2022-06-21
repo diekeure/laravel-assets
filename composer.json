@@ -5,7 +5,9 @@
   "require": {
     "php": ">=7.0.0",
     "catlabinteractive/base": "~1.0",
-    "laravel/framework": ">=8.0"
+    "laravel/framework": ">=8.0",
+    "intervention/image": "^2.7",
+    "intervention/imagecache": "^2.5"
   },
   "require-dev": {
     "phpunit/phpunit": "*"
