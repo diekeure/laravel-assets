@@ -308,20 +308,22 @@ class Asset extends Model
                 $forceEncoding = null;
 
                 // Actual resize.
-                $image = Image::make($asset->getOriginalImage());
-                $image = $image->fit($width, $height);
+                $image = Image::read($asset->getOriginalImage());
+                $image = $image->cover($width, $height);
 
                 // Apply a mask
                 switch ($shape) {
                     case AssetController::QUERY_SHAPE_CIRCLE:
+                        \Log::warning('Mask method removed in intervention v3, skipping.');
 
-                        $maskImage = Image::canvas($width, $height);
-                        $maskImage->circle($width - 3, ($width / 2), ($height / 2), function ($draw) {
-                            $draw->background('#ffffff');
-                        });
+                        // $maskImage = Image::create($width, $height);
+                        // $maskImage->drawCircle(($width / 2), ($height / 2), function ($draw) use ($width) {
+                        //     $draw->radius($width - 3);
+                        //     $draw->background('#ffffff');
+                        // });
 
-                        $image->mask($maskImage, true);
-                        $forceEncoding = 'png';
+                        // $image->mask($maskImage, true);
+                        // $forceEncoding = 'png';
                         break;
                 }
 
@@ -331,7 +333,7 @@ class Asset extends Model
                 }
 
                 if ($forceEncoding) {
-                    $encoded = $image->encode($forceEncoding);
+                    $encoded = $image->encodeByExtension($forceEncoding);
                 } else {
                     $encoded = $image->encode();
                 }
@@ -802,22 +804,22 @@ class Asset extends Model
             ceil($height + ($borderWidth / 2))
         );
 
-        $borderImage = Image::canvas(
+        $borderImage = Image::create(
             ($width + $borderWidth),
             ($height + $borderWidth)
         );
 
-        $borderImage->circle(
-            $width - $borderWidth,
+        $borderImage->drawCircle(
             floor(($width + $borderWidth * 0.5) / 2),
             floor(($height + $borderWidth * 0.5) / 2),
-            function ($draw) use ($borderWidth, $borderColor) {
+            function ($draw) use ($borderWidth, $borderColor, $width) {
 
+                $draw->radius($width - $borderWidth);
                 $draw->border($borderWidth, $borderColor);
 
             });
 
-        $image->insert($borderImage);
+        $image->place($borderImage);
 
         // and resize back to the original size.
         $image->resize($width, $height);
